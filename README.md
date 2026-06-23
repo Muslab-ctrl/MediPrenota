@@ -1,4 +1,3 @@
-```markdown
 # 🏥 MediPrenota
 
 Un'applicazione Full-Stack moderna e performante per la ricerca di medici specialisti e la prenotazione di visite in tempo reale. Il sistema è strutturato con un'architettura disaccoppiata: un **Backend in Python (FastAPI)** per la logica di business e la persistenza dei dati, e un **Frontend Mobile in React Native (Expo)** sviluppato in TypeScript.
