@@ -1,9 +1,9 @@
-// frontend_mobile/screens/ScegliMedico.tsx
 import React, { useEffect, useState } from 'react';
 import {
   StyleSheet, Text, View, TouchableOpacity, ScrollView,
   TextInput, ActivityIndicator, Alert
 } from 'react-native';
+
 import { INDIRIZZO_BACKEND } from './config';
 
 const VERDE = '#1A6B4A';
@@ -36,7 +36,8 @@ export default function ScegliMedico({ utente, onTorna, onPrenota }: Props) {
   });
 
   return (
-    <View style={{ flex: 1, backgroundColor: SFONDO, paddingTop: 50 }}>
+    // 🟢 FIX 1: Spostato il paddingTop dentro la struttura della topBar per evitare il disallineamento dello sfondo
+    <View style={{ flex: 1, backgroundColor: SFONDO }}>
       {/* Top Bar */}
       <View style={s.topBar}>
         <TouchableOpacity onPress={onTorna} style={s.backBtn}>
@@ -49,6 +50,7 @@ export default function ScegliMedico({ utente, onTorna, onPrenota }: Props) {
         <TextInput
           style={s.ricercaInput}
           placeholder="Cerca per nome o specializzazione..."
+          placeholderTextColor={GRIGIO}
           value={ricerca}
           onChangeText={setRicerca}
         />
@@ -62,7 +64,11 @@ export default function ScegliMedico({ utente, onTorna, onPrenota }: Props) {
           <Text style={s.vuotoTesto}>Nessun medico trovato</Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 16 }}>
+        // 🟢 FIX 2: Aggiunto il paddingBottom per permettere uno scorrimento fluido senza tagliare l'ultima card
+        <ScrollView 
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+          showsVerticalScrollIndicator={false}
+        >
           {filtrati.map((m) => (
             <View key={m.id} style={s.card}>
               <View style={s.cardAvatar}>
@@ -86,7 +92,18 @@ export default function ScegliMedico({ utente, onTorna, onPrenota }: Props) {
 }
 
 const s = StyleSheet.create({
-  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#D4E8DC' },
+  // 🟢 FIX 3: Il paddingTop (50px per la notch dei telefoni) adesso è applicato qui. 
+  // Essendo bianco, si fonderà nativamente con la barra di stato del telefono eliminando lo sfarfallio.
+  topBar: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    paddingHorizontal: 16, 
+    paddingTop: 54, 
+    paddingBottom: 16, 
+    backgroundColor: '#fff', 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#D4E8DC' 
+  },
   backBtn: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#E8F2EC', borderRadius: 8 },
   backBtnTesto: { color: VERDE, fontWeight: '700' },
   topBarTitolo: { fontSize: 18, fontWeight: '800', color: TESTO, marginLeft: 16 },
@@ -94,7 +111,7 @@ const s = StyleSheet.create({
   vuoto: { alignItems: 'center', marginTop: 60 },
   vuotoIcona: { fontSize: 44, marginBottom: 8 },
   vuotoTesto: { color: GRIGIO, fontSize: 15, fontWeight: '600' },
-  card: { backgroundColor: '#fff', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 12, elevation: 2 },
+  card: { backgroundColor: '#fff', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 12, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 },
   cardAvatar: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#C5DFD0', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   cardAvatarTesto: { fontSize: 18, fontWeight: '700', color: VERDE },
   cardInfo: { flex: 1 },
