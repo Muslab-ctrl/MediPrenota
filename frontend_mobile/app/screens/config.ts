@@ -1,0 +1,1 @@
+export const INDIRIZZO_BACKEND = "http://10.4.0.142:8000";

@@ -1,0 +1,24 @@
+# --- FRONTEND (React Native / Node) ---
+node_modules/
+.expo/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- BACKEND (Python / FastAPI) ---
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+.env
+
+# --- DATABASE ---
+*.db
+salute.db
+
+# --- SISTEMA E IDE ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
