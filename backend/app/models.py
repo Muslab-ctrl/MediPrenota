@@ -1,4 +1,3 @@
-# backend/app/models.py
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum
 from sqlalchemy.orm import relationship
 import enum
@@ -39,9 +38,9 @@ class OrarioLavoroDottore(Base):
     __tablename__ = "orari_dottori"
     id = Column(Integer, primary_key=True, index=True)
     dottore_id = Column(Integer, ForeignKey("dottori.id"))
-    giorno_settimana = Column(String) # E.g., 'Lun', 'Mar'
-    ora_inizio = Column(String) # E.g., '09:00'
-    ora_fine = Column(String) # E.g., '18:00'
+    giorno_settimana = Column(String)
+    ora_inizio = Column(String)
+    ora_fine = Column(String)
     
     dottore = relationship("Dottore", back_populates="orari")
 

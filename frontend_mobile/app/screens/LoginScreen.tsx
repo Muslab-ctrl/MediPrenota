@@ -1,7 +1,7 @@
-// frontend_mobile/screens/LoginScreen.tsx
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { INDIRIZZO_BACKEND } from './config';
+import { TokenStorage } from './tokenStorage';
 
 interface LoginScreenProps {
   onLogin: (utente: any) => void;
@@ -57,9 +57,18 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       if (!res.ok) throw new Error("Email o password errate.");
       return res.json();
     })
-    .then((utente) => {
-      Alert.alert("Benvenuto", `Accesso eseguito come ${utente.nome || ''} ${utente.cognome || ''}`);
-      onLogin(utente);
+    .then(async (data) => {
+      if (data.access_token) {
+        await TokenStorage.saveToken(data.access_token);
+      }
+      Alert.alert("Benvenuto", `Accesso eseguito come ${data.nome || ''} ${data.cognome || ''}`);
+      onLogin({
+        id: data.id,
+        email: data.email,
+        nome: data.nome,
+        cognome: data.cognome,
+        is_admin: data.is_admin
+      });
     })
     .catch((err) => {
       if (err.message.includes("Network request failed") || err.message.includes("timed out")) {
@@ -73,7 +82,6 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   };
 
   const eseguiRegistrazione = () => {
-    // Il .trim() rimuove spazi vuoti accidentali inseriti dal correttore automatico dello smartphone
     const emailPulita = email.trim();
     const passwordPulita = password.trim();
     const nomePulito = nome.trim();
@@ -110,7 +118,6 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       })
     })
     .then((res) => {
-      // Se il backend risponde con un errore (es. email duplicata), lo intercettiamo subito
       if (!res.ok) {
         return res.json().then(errData => {
           throw new Error(errData.detail || "Impossibile registrarsi.");
@@ -121,7 +128,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
     .then(() => {
       setCaricamento(false);
       Alert.alert("Account Creato!", "La registrazione è andata a buon fine. Ora puoi effettuare il login.");
-      setIsLoginMode(true); // Cambia schermata e torna al login grafico
+      setIsLoginMode(true);
       setPassword('');
       setConfermaPassword('');
     })

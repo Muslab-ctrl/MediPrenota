@@ -4,6 +4,7 @@ import {
   ActivityIndicator, Alert
 } from 'react-native';
 
+import { TokenStorage } from './tokenStorage';
 import { INDIRIZZO_BACKEND } from './config'; 
 
 const VERDE = '#1A6B4A';
@@ -28,15 +29,26 @@ const generaGiorniDisponibili = () => {
   const giorni = [];
   const oggi = new Date();
   
-  for (let i = 0; i < 5; i++) {
-    const dataVisualizzata = new Date(oggi);
-    dataVisualizzata.setDate(oggi.getDate() + i);
+  for (let i = 0; i < 14; i++) {
+    const dataVerifica = new Date(oggi);
+    dataVerifica.setDate(oggi.getDate() + i);
     
-    const giorno = String(dataVisualizzata.getDate()).padStart(2, '0');
-    const mese = String(dataVisualizzata.getMonth() + 1).padStart(2, '0');
-    const anno = dataVisualizzata.getFullYear();
+    const giornoDellaSettimana = dataVerifica.getDay();
     
-    giorni.push(`${giorno}/${mese}/${anno}`);
+    if (giornoDellaSettimana === 0 || giornoDellaSettimana === 6) {
+      continue;
+    }
+    
+    const giornoStr = String(dataVerifica.getDate()).padStart(2, '0');
+    const meseStr = String(dataVerifica.getMonth() + 1).padStart(2, '0');
+    const annoStr = dataVerifica.getFullYear();
+    const dataFormattata = `${giornoStr}/${meseStr}/${annoStr}`;
+    
+    giorni.push(dataFormattata);
+    
+    if (giorni.length === 7) {
+      break;
+    }
   }
   return giorni;
 };
@@ -48,7 +60,7 @@ export default function PrenotaAppuntamento({ utente, dottore, onTorna, onConfer
 
   const GIORNI_DISPONIBILI = generaGiorniDisponibili();
 
-  const gestisciPrenotazione = () => {
+  const gestisciPrenotazione = async () => {
     if (!giornoSelezionato || !oraSelezionata) {
       Alert.alert("Attenzione", "Seleziona giorno e orario.");
       return;
@@ -56,43 +68,62 @@ export default function PrenotaAppuntamento({ utente, dottore, onTorna, onConfer
 
     setCaricamento(true);
 
-    const [giorno, mese, anno] = giornoSelezionato.split('/');
-    const [ora, minuto] = oraSelezionata.split(':');
-
-    const dataLocaleISO = `${anno}-${mese.padStart(2, '0')}-${giorno.padStart(2, '0')}T${ora}:${minuto}:00`;
-
-    const payloadPrenotazione = {
-      utente_id: Number(utente.id), 
-      dottore_id: Number(dottore.id),
-      data_ora: dataLocaleISO
-    };
-
-    fetch(`${INDIRIZZO_BACKEND}/prenotazioni/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(payloadPrenotazione)
-    })
-    .then(async (res) => {
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.detail ? errorData.detail : "Slot occupato o errore.");
+    try {
+      const token = await TokenStorage.getToken();
+      if (!token) {
+        Alert.alert("Errore", "Sessione scaduta o non valida. Effettua nuovamente il login.");
+        setCaricamento(false);
+        return;
       }
-      return res.json();
-    })
-    .then((data) => {
+
+      const [giorno, mese, anno] = giornoSelezionato.split('/');
+      const [ora, minuto] = oraSelezionata.split(':');
+
+      const dataFormattataBackend = `${anno}-${mese.padStart(2, '0')}-${giorno.padStart(2, '0')} ${ora}:${minuto}`;
+
+      const res = await fetch(`${INDIRIZZO_BACKEND}/prenotazioni/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          dottore_id: Number(dottore.id),
+          data_ora: dataFormattataBackend
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        let erroreFormattato = "Slot occupato o errore.";
+        if (data && data.detail) {
+          erroreFormattato = typeof data.detail === 'object' ? JSON.stringify(data.detail) : String(data.detail);
+        }
+        throw new Error(erroreFormattato);
+      }
+
       Alert.alert(
         "Prenotazione Confermata 🎉", 
         `Visita registrata con successo.\nCodice Ticket: ${data.codice_ticket}`,
-        [{ text: "OK", onPress: onConferma }]
+        [{ text: "OK", onPress: () => { if (onConferma) onConferma(); } }],
+        { cancelable: false }
       );
-    })
-    .catch((err) => {
-      Alert.alert("Errore di Prenotazione", err.message);
-    })
-    .finally(() => setCaricamento(false));
+
+    } catch (err: any) {
+      let messaggioErrore = "Qualcosa è andato storto.";
+      if (err && err.message) {
+        messaggioErrore = err.message;
+      } else if (typeof err === 'string') {
+        messaggioErrore = err;
+      } else {
+        messaggioErrore = JSON.stringify(err);
+      }
+      Alert.alert("Errore di Prenotazione", messaggioErrore);
+    } finally {
+      setCaricamento(false);
+    }
   };
   
   return (
@@ -100,7 +131,6 @@ export default function PrenotaAppuntamento({ utente, dottore, onTorna, onConfer
       <Text style={styles.titolo}>Prenota una Visita</Text>
       <Text style={styles.sottoTitolo}>Specialista: <Text style={{fontWeight: '700'}}>{dottore.full_name}</Text></Text>
       
-      {/* SEZIONE 1: SCELTA DEL GIORNO */}
       <View style={styles.card}>
         <Text style={styles.sezioneTitolo}>1. Seleziona il Giorno</Text>
         <Text style={styles.infoStudio}>📍 Studio: {dottore.studio_indirizzo}</Text>
@@ -126,7 +156,6 @@ export default function PrenotaAppuntamento({ utente, dottore, onTorna, onConfer
         </ScrollView>
       </View>
 
-      {/* SEZIONE 2: SCELTA DELL'ORARIO */}
       <View style={styles.card}>
         <Text style={styles.sezioneTitolo}>2. Seleziona l'Orario</Text>
         <Text style={styles.infoStudio}>
@@ -168,7 +197,6 @@ export default function PrenotaAppuntamento({ utente, dottore, onTorna, onConfer
         </View>
       </View>
 
-      {/* BARRA AZIONI */}
       <View style={styles.bottoniBarra}>
         <TouchableOpacity style={styles.bottoneAnnulla} onPress={onTorna}>
           <Text style={styles.testoAnnulla}>Annulla</Text>
@@ -192,7 +220,7 @@ export default function PrenotaAppuntamento({ utente, dottore, onTorna, onConfer
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, padding: 16, backgroundColor: SFONDO },
-  titolo: { fontSize: 20, fontWeight: '700', color: TESTO, marginTop: 10 },
+  titolo: { fontSize: 20, fontWeight: '700', color: TESTO, marginTop: 45 },
   sottoTitolo: { fontSize: 14, color: GRIGIO, marginBottom: 16 },
   card: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16, elevation: 2 },
   sezioneTitolo: { fontSize: 15, fontWeight: '700', color: TESTO, marginBottom: 4 },

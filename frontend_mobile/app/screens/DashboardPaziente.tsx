@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
+import { TokenStorage } from './tokenStorage';
 
 const VERDE = '#1A6B4A';
 const SFONDO = '#E8F2EC';
@@ -15,14 +16,9 @@ interface Props {
 
 export default function DashboardPaziente({ utente, onLogout, onVaiMedici, onVaiAppuntamenti }: Props) {
   
-  // 🟢 Intercettiamo il click per assicurarci che l'azione resetti o rinfreschi lo stato
-  const gestisciNavigazionePrenotazione = () => {
-    // Chiamiamo la funzione di navigazione passata dal padre
-    onVaiMedici();
-  };
-
-  const gestisciNavigazioneAppuntamenti = () => {
-    onVaiAppuntamenti();
+  const eseguiLogoutSicuro = async () => {
+    await TokenStorage.removeToken();
+    onLogout();
   };
 
   return (
@@ -32,28 +28,26 @@ export default function DashboardPaziente({ utente, onLogout, onVaiMedici, onVai
           <Text style={styles.saluto}>Gentile Paziente,</Text>
           <Text style={styles.nomeUtente}>{utente?.nome} {utente?.cognome}</Text>
         </View>
-        <TouchableOpacity style={styles.bottoneLogout} onPress={onLogout}>
+        <TouchableOpacity style={styles.bottoneLogout} onPress={eseguiLogoutSicuro}>
           <Text style={styles.testoLogout}>Esci</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.titoloSezione}>Servizi Disponibili</Text>
+      <Text style={styles.titoloSezione}>Servizi Struttura Sanitaria</Text>
 
-      {/* 🟢 Ora usa la funzione aggiornata */}
-      <TouchableOpacity style={styles.cardServizio} onPress={gestisciNavigazionePrenotazione}>
+      <TouchableOpacity style={styles.cardServizio} onPress={onVaiMedici}>
         <Text style={styles.iconaCard}>🩺</Text>
         <View style={styles.infoCard}>
-          <Text style={styles.titoloCard}>Prenota Visita Medica</Text>
-          <Text style={styles.descCard}>Cerca uno specialista per branca medica e fissa un appuntamento.</Text>
+          <Text style={styles.titoloCard}>Prenota Visita Specialistica</Text>
+          <Text style={styles.descCard}>Trova i medici disponibili, visualizza gli orari di ambulatorio e blocca il tuo posto.</Text>
         </View>
       </TouchableOpacity>
 
-      {/* 🟢 Ora usa la funzione aggiornata */}
-      <TouchableOpacity style={styles.cardServizio} onPress={gestisciNavigazioneAppuntamenti}>
+      <TouchableOpacity style={styles.cardServizio} onPress={onVaiAppuntamenti}>
         <Text style={styles.iconaCard}>📅</Text>
         <View style={styles.infoCard}>
           <Text style={styles.titoloCard}>I Miei Appuntamenti</Text>
-          <Text style={styles.descCard}>Visualizza i tuoi ticket attivi, lo stato delle visite e lo storico.</Text>
+          <Text style={styles.descCard}>Visualizza i tuoi ticket attivi, lo stato delle visite e lo storico complessivo.</Text>
         </View>
       </TouchableOpacity>
     </ScrollView>
@@ -68,9 +62,9 @@ const styles = StyleSheet.create({
   bottoneLogout: { backgroundColor: '#EF4444', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 },
   testoLogout: { color: '#fff', fontWeight: '600', fontSize: 13 },
   titoloSezione: { fontSize: 16, fontWeight: '700', color: TESTO, marginBottom: 15 },
-  cardServizio: { backgroundColor: '#fff', borderRadius: 16, padding: 18, flexDirection: 'row', alignItems: 'center', marginBottom: 14, shadowColor: '#000', shadowOpacity: 0.04, elevation: 2 },
+  cardServizio: { backgroundColor: '#fff', borderRadius: 16, padding: 18, flexDirection: 'row', alignItems: 'center', marginBottom: 16, elevation: 2 },
   iconaCard: { fontSize: 32, marginRight: 16 },
   infoCard: { flex: 1 },
-  titoloCard: { fontSize: 15, fontWeight: '700', color: TESTO },
-  descCard: { fontSize: 12, color: GRIGIO, marginTop: 2, lineHeight: 16 }
+  titoloCard: { fontSize: 15, fontWeight: '700', color: TESTO, marginBottom: 4 },
+  descCard: { fontSize: 12, color: GRIGIO, lineHeight: 16 }
 });

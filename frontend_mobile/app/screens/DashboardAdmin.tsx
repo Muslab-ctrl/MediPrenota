@@ -54,8 +54,23 @@ export default function DashboardAdmin({ utente, onLogout }: Props) {
   }, []);
 
   const gestisciSalvataggioMedico = () => {
+    // 1. Verifica campi vuoti
     if (!nomeDottore.trim() || !indirizzoStudio.trim() || !telefonoDottore.trim()) {
       Alert.alert("Attenzione", "Compila tutti i campi obbligatori del medico.");
+      return;
+    }
+
+    // 2. VALIDAZIONE TELEFONO (Replica i vincoli del Backend schemas.py)
+    const cleanPhone = telefonoDottore.replace(/[\s\-()]/g, ''); // Rimuove spazi, trattini e parentesi
+    const regexTelefono = /^\+?[0-9]+$/; // Solo numeri ed eventualmente un + iniziale
+
+    if (!regexTelefono.test(cleanPhone)) {
+      Alert.alert("Errore Validazione", "Il numero di telefono può contenere solo cifre ed eventualmente il prefisso '+'");
+      return;
+    }
+
+    if (cleanPhone.length < 6 || cleanPhone.length > 15) {
+      Alert.alert("Errore Validazione", "Il numero di telefono deve essere compreso tra 6 e 15 cifre (esclusi spazi o caratteri speciali).");
       return;
     }
 
@@ -65,12 +80,11 @@ export default function DashboardAdmin({ utente, onLogout }: Props) {
       full_name: nomeDottore.trim(),
       specialization: specSelezionata,
       studio_indirizzo: indirizzoStudio.trim(),
-      telefono: telefonoDottore.trim(),
-      biografia: `Orari di apertura: ${orariTesto}`,
+      telefono: cleanPhone, // Inviamo il telefono pulito
+      biografia: `Orari di apertura: ${orariTesto}`, // Nota: salvato come testo nella biografia
       anni_esperienza: 5
     };
 
-    // Creiamo un meccanismo di timeout a 7 secondi per evitare il caricamento infinito
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 7000);
 
@@ -83,10 +97,10 @@ export default function DashboardAdmin({ utente, onLogout }: Props) {
         'Accept': 'application/json'
       },
       body: JSON.stringify(payloadMedico),
-      signal: controller.signal // Collega il segnale di interruzione
+      signal: controller.signal
     })
     .then(async (res) => {
-      clearTimeout(timeoutId); // Rimuove il timeout se ha risposto in tempo
+      clearTimeout(timeoutId);
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.detail || "Errore di validazione del server.");
@@ -171,7 +185,7 @@ export default function DashboardAdmin({ utente, onLogout }: Props) {
         <Text style={styles.label}>Telefono Ambulatorio</Text>
         <TextInput style={styles.input} placeholder="0301234567" value={telefonoDottore} onChangeText={setTelefonoDottore} keyboardType="phone-pad" />
 
-        <Text style={styles.label}>Orari di Ricevimento Disponibili</Text>
+        <Text style={styles.label}>Orari di Ricevimento Disponibili (Nota Biografica)</Text>
         <TextInput style={styles.input} placeholder="Es: Lun - Ven, 09:00 - 16:00" value={orariTesto} onChangeText={setOrariTesto} />
 
         {caricamentoMedico ? (
@@ -221,7 +235,7 @@ export default function DashboardAdmin({ utente, onLogout }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 16, backgroundColor: SFONDO },
+  container: { flexGrow: 1, paddingHorizontal: 16, paddingBottom: 16, paddingTop: 50, backgroundColor: SFONDO },
   header: { backgroundColor: TESTO, padding: 18, borderRadius: 14, marginBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   badge: { color: '#A9DFBF', fontWeight: 'bold', fontSize: 10, letterSpacing: 0.8 },
   titolo: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', marginTop: 2 },

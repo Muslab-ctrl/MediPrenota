@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 import hashlib
 from app import models, schemas
 from app.database import SessionLocal
+from app.security import create_access_token
 
 router = APIRouter(prefix="/auth", tags=["Autenticazione"])
 
@@ -43,8 +44,11 @@ def login_utente(utente_in: schemas.LoginInput, db: Session = Depends(get_db)):
     if password_inserita_hashed != utente.hashed_password:
         raise HTTPException(status_code=400, detail="Credenziali non valide.")
 
+    token_di_accesso = create_access_token(data={"sub": str(utente.id), "email": utente.email})
+
     return {
-        "messaggio": "Login effettuato con successo",
+        "access_token": token_di_accesso,
+        "token_type": "bearer",
         "id": utente.id,
         "email": utente.email,
         "nome": utente.nome,

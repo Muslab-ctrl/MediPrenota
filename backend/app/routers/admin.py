@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app import models, schemas
 from app.database import SessionLocal
-from typing import List
 
 router = APIRouter(prefix="/admin", tags=["Amministrazione"])
 
@@ -13,7 +12,6 @@ def get_db():
     finally:
         db.close()
 
-
 @router.get("/dottori")
 def lista_completa_dottori(db: Session = Depends(get_db)):
     dottori = db.query(models.Dottore).all()
@@ -21,7 +19,7 @@ def lista_completa_dottori(db: Session = Depends(get_db)):
     for d in dottori:
         orari_occupati = []
         for p in d.prenotazioni:
-            if p.stato != "Annullato" and p.stato != "CANCELLED":
+            if p.stato != models.StatoPrenotazione.CANCELLED:
                 if hasattr(p.data_ora, "strftime"):
                     orari_occupati.append(p.data_ora.strftime("%Y-%m-%d %H:%M"))
                 else:
@@ -39,9 +37,6 @@ def lista_completa_dottori(db: Session = Depends(get_db)):
 
 @router.post("/dottori", response_model=schemas.DottoreRisposta, status_code=status.HTTP_201_CREATED)
 def aggiungi_dottore(dottore_in: schemas.DottoreCreate, db: Session = Depends(get_db)):
-    """
-    Crea un medico nel database basandosi sullo schema DottoreCreate di schemas.py
-    """
     nuovo_dottore = models.Dottore(
         full_name=dottore_in.full_name,
         specialization=dottore_in.specialization,
@@ -54,11 +49,9 @@ def aggiungi_dottore(dottore_in: schemas.DottoreCreate, db: Session = Depends(ge
         db.add(nuovo_dottore)
         db.commit()
         db.refresh(nuovo_dottore)
-        print(f" -> [SUCCESS] Medico creato correttamente: {nuovo_dottore.full_name}")
         return nuovo_dottore
-    except Exception as e:
+    except Exception:
         db.rollback()
-        print(f" -> [ERROR] Errore nel salvataggio DB: {str(e)}")
         raise HTTPException(status_code=500, detail="Errore interno durante il salvataggio nel database.")
 
 @router.get("/appuntamenti-totali", status_code=200)
@@ -70,7 +63,7 @@ def lista_appuntamenti_totali(db: Session = Depends(get_db)):
             "id": p.id,
             "data_ora": p.data_ora,
             "codice_ticket": p.codice_ticket,
-            "stato": p.stato,
+            "stato": p.stato.value if isinstance(p.stato, models.StatoPrenotazione) else p.stato,
             "paziente": f"{p.utente.nome} {p.utente.cognome}" if p.utente else "Sconosciuto",
             "dottore": p.dottore.full_name if p.dottore else "Sconosciuto"
         })
@@ -82,6 +75,6 @@ def disdici_appuntamento_admin(prenotazione_id: int, db: Session = Depends(get_d
     if not prenotazione:
         raise HTTPException(status_code=404, detail="Appuntamento non trovato.")
     
-    prenotazione.stato = "CANCELLED"
+    prenotazione.stato = models.StatoPrenotazione.CANCELLED
     db.commit()
     return {"status": "success"}

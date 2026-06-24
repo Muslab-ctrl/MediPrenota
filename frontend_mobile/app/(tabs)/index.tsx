@@ -14,7 +14,6 @@ export default function App() {
   const [utente, setUtente] = useState<any>(null);
   const [schermata, setSchermata] = useState<Schermata>('login');
   const [dottoreSelezionato, setDottoreSelezionato] = useState<any>(null);
-  
   const [refreshKey, setRefreshKey] = useState<number>(Date.now());
 
   const handleLogin = (u: any) => {
@@ -43,12 +42,10 @@ export default function App() {
         <LoginScreen onLogin={handleLogin} />
       )}
 
-      {/* RENDERIZZA LA SCHERMATA DELL'AMMINISTRATORE */}
       {schermata === 'admin_dashboard' && utente && (
         <DashboardAdmin utente={utente} onLogout={handleLogout} />
       )}
 
-      {/* SCHERMATE DEDICATE AI PAZIENTI */}
       {schermata === 'dashboard' && utente && (
         <DashboardPaziente
           utente={utente}
@@ -76,7 +73,10 @@ export default function App() {
           utente={utente}
           dottore={dottoreSelezionato}
           onTorna={() => setSchermata('medici')}
-          onConferma={() => setSchermata('appuntamenti')}
+          onConferma={() => {
+            setRefreshKey(Date.now());
+            setSchermata('appuntamenti');
+          }}
         />
       )}
 

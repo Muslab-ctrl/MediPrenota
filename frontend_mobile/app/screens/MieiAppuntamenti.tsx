@@ -3,15 +3,14 @@ import {
   StyleSheet, Text, View, TouchableOpacity, ScrollView,
   ActivityIndicator, Alert, RefreshControl, Modal
 } from 'react-native';
+import { INDIRIZZO_BACKEND } from './config';
+import { TokenStorage } from './tokenStorage'; 
 
 const VERDE = '#1A6B4A';
 const SFONDO = '#E8F2EC';
 const GRIGIO = '#6B8A7A';
 const TESTO = '#0D2B1F';
 
-import { INDIRIZZO_BACKEND } from './config';
-
-// Mappatura corretta basata sui valori in italiano reali del Database
 const COLORI_STATO: Record<string, string> = {
   'Confermato': '#10B981',
   'Annullato': '#EF4444',
@@ -31,24 +30,41 @@ export default function MieiAppuntamenti({ utente, onTorna }: Props) {
   const [tabAttiva, setTabAttiva] = useState<Tab>('Prossimi');
   const [appuntamentoSelezionato, setAppuntamentoSelezionato] = useState<any | null>(null);
 
-  const caricaAppuntamenti = useCallback(() => {
-    fetch(`${INDIRIZZO_BACKEND}/prenotazioni/utente/${utente.id}`)
-      .then(r => r.json())
-      .then(data => {
-        // 🟢 Allineamento col DB: Il backend usa direttamente le stringhe "Confermato" e "Annullato"
-        const mappati = (Array.isArray(data) ? data : []).map((ap: any) => {
-          return { 
-            ...ap, 
-            statoInterno: ap.stato // Mappiamo direttamente lo stato pulito restituito
-          };
-        });
-        setAppuntamenti(mappati);
-      })
-      .catch(() => Alert.alert("Errore", "Impossibile caricare gli appuntamenti."))
-      .finally(() => { setCaricamento(false); setRefresh(false); });
-  }, [utente.id]);
+  const caricaAppuntamenti = useCallback(async () => {
+    try {
+      const token = await TokenStorage.getToken();
+      if (!token) {
+        Alert.alert("Errore", "Sessione scaduta. Effettua nuovamente il login.");
+        return;
+      }
 
-  useEffect(() => { caricaAppuntamenti(); }, [caricaAppuntamenti]);
+      const res = await fetch(`${INDIRIZZO_BACKEND}/prenotazioni/mie-prenotazioni`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!res.ok) throw new Error(`Risposta del server non valida (Stato: ${res.status})`);
+
+      const data = await res.json();
+      const mappati = (Array.isArray(data) ? data : []).map((ap: any) => ({
+        ...ap,
+        statoInterno: ap.stato
+      }));
+      setAppuntamenti(mappati);
+    } catch (err: any) {
+      Alert.alert("Errore di Diagnostica", err.message || "Errore sconosciuto di rete.");
+    } finally {
+      setCaricamento(false);
+      setRefresh(false);
+    }
+  }, []);
+
+  useEffect(() => { 
+    caricaAppuntamenti(); 
+  }, [caricaAppuntamenti]);
 
   const ora = new Date();
   const filtrati = appuntamenti.filter(a => {
@@ -65,27 +81,29 @@ export default function MieiAppuntamenti({ utente, onTorna }: Props) {
 
   const tabs: Tab[] = ['Prossimi', 'Passati', 'Annullati'];
 
-  const eseguiDisdetta = (idPrenotazione: number) => {
+  const eseguiDisdetta = async (idPrenotazione: number) => {
     Alert.alert(
       "Disdici Appuntamento",
       "Vuoi davvero annullare questa visita medica? L'orario tornerà disponibile per altri pazienti.",
       [
         { text: "No", style: "cancel" },
         { 
-          text: "Sì", // C'è solo "Sì" al posto di "Sì, Annulla"
+          text: "Sì", 
           style: "destructive", 
-          onPress: () => {
-            fetch(`${INDIRIZZO_BACKEND}/prenotazioni/${idPrenotazione}/disdici`, {
-              method: 'PUT',
-              headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-              }
-            })
-            .then((res) => {
+          onPress: async () => {
+            try {
+              const token = await TokenStorage.getToken();
+              const res = await fetch(`${INDIRIZZO_BACKEND}/prenotazioni/${idPrenotazione}/disdici`, {
+                method: 'PUT',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Accept': 'application/json',
+                  'Content-Type': 'application/json'
+                }
+              });
+
               if (!res.ok) throw new Error();
 
-              // 🟢 Aggiornamento locale immediato usando la stringa corretta "Annullato"
               setAppuntamenti(prevAppuntamenti => 
                 prevAppuntamenti.map(ap => {
                   if (ap.id === idPrenotazione) {
@@ -96,9 +114,10 @@ export default function MieiAppuntamenti({ utente, onTorna }: Props) {
               );
 
               Alert.alert("Annullato 🎉", "Il tuo appuntamento è stato disdetto con successo.");
-              caricaAppuntamenti(); // Sincronizzazione pulita di controllo col backend
-            })
-            .catch(() => Alert.alert("Errore", "Impossibile completare la disdetta. Riprova."));
+              caricaAppuntamenti();
+            } catch {
+              Alert.alert("Errore", "Impossibile completare la disdetta. Riprova.");
+            }
           }
         }
       ]
@@ -107,7 +126,6 @@ export default function MieiAppuntamenti({ utente, onTorna }: Props) {
 
   return (
     <View style={{ flex: 1, backgroundColor: SFONDO }}>
-      {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={onTorna} style={s.backBtn}>
           <Text style={s.backTesto}>← Torna</Text>
@@ -116,7 +134,6 @@ export default function MieiAppuntamenti({ utente, onTorna }: Props) {
         <View style={{ width: 70 }} />
       </View>
 
-      {/* Tabs */}
       <View style={s.tabsRow}>
         {tabs.map(t => (
           <TouchableOpacity key={t} style={[s.tab, tabAttiva === t && s.tabAttiva]} onPress={() => setTabAttiva(t)}>
@@ -156,7 +173,6 @@ export default function MieiAppuntamenti({ utente, onTorna }: Props) {
         </ScrollView>
       )}
 
-      {/* POP-UP DETTAGLI APPUNTAMENTO */}
       {appuntamentoSelezionato && (
         <Modal
           animationType="fade"
