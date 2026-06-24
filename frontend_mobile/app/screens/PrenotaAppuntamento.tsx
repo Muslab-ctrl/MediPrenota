@@ -146,7 +146,7 @@ export default function PrenotaAppuntamento({ utente, dottore, onTorna, onConfer
               }}
             >
               <Text style={[styles.giornoTesto, giornoSelezionato === giorno && styles.giornoTestoSelezionato]}>
-                {giorno === GIORNI_DISPONIBILI[0] ? "Oggi" : giorno.substring(0, 5)}
+                {giorno === GIORNI_DISPONIBILI[0] ? "Oggi" : String(giorno).substring(0, 5)}
               </Text>
               <Text style={[styles.giornoSottoTesto, giornoSelezionato === giorno && styles.giornoTestoSelezionato]}>
                 {giornoSelezionato === giorno ? "Scelto" : "Disponibile"}
