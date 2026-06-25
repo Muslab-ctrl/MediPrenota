@@ -23,7 +23,6 @@ export default function DashboardAdmin({ utente, onLogout }: Props) {
   const [specSelezionata, setSpecSelezionata] = useState('Medicina Generale');
   const [indirizzoStudio, setIndirizzoStudio] = useState('');
   const [telefonoDottore, setTelefonoDottore] = useState('');
-  const [orariTesto, setOrariTesto] = useState('Lun - Ven, 09:00 - 16:00');
   const [caricamentoMedico, setCaricamentoMedico] = useState(false);
 
   const [appuntamenti, setAppuntamenti] = useState<any[]>([]);
@@ -54,15 +53,13 @@ export default function DashboardAdmin({ utente, onLogout }: Props) {
   }, []);
 
   const gestisciSalvataggioMedico = () => {
-    // 1. Verifica campi vuoti
     if (!nomeDottore.trim() || !indirizzoStudio.trim() || !telefonoDottore.trim()) {
       Alert.alert("Attenzione", "Compila tutti i campi obbligatori del medico.");
       return;
     }
 
-    // 2. VALIDAZIONE TELEFONO (Replica i vincoli del Backend schemas.py)
-    const cleanPhone = telefonoDottore.replace(/[\s\-()]/g, ''); // Rimuove spazi, trattini e parentesi
-    const regexTelefono = /^\+?[0-9]+$/; // Solo numeri ed eventualmente un + iniziale
+    const cleanPhone = telefonoDottore.replace(/[\s\-()]/g, ''); 
+    const regexTelefono = /^\+?[0-9]+$/; 
 
     if (!regexTelefono.test(cleanPhone)) {
       Alert.alert("Errore Validazione", "Il numero di telefono può contenere solo cifre ed eventualmente il prefisso '+'");
@@ -80,8 +77,8 @@ export default function DashboardAdmin({ utente, onLogout }: Props) {
       full_name: nomeDottore.trim(),
       specialization: specSelezionata,
       studio_indirizzo: indirizzoStudio.trim(),
-      telefono: cleanPhone, // Inviamo il telefono pulito
-      biografia: `Orari di apertura: ${orariTesto}`, // Nota: salvato come testo nella biografia
+      telefono: cleanPhone,
+      biografia: "Orari di apertura standard disponibili in fase di prenotazione.",
       anni_esperienza: 5
     };
 
@@ -161,7 +158,7 @@ export default function DashboardAdmin({ utente, onLogout }: Props) {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.sezioneTitolo}>Aggiungi un Medico e Orari</Text>
+        <Text style={styles.sezioneTitolo}>Aggiungi un Medico</Text>
 
         <Text style={styles.label}>Nome e Cognome</Text>
         <TextInput style={styles.input} placeholder="Dott.ssa Valeria Bianchi" value={nomeDottore} onChangeText={setNomeDottore} />
@@ -184,9 +181,6 @@ export default function DashboardAdmin({ utente, onLogout }: Props) {
 
         <Text style={styles.label}>Telefono Ambulatorio</Text>
         <TextInput style={styles.input} placeholder="0301234567" value={telefonoDottore} onChangeText={setTelefonoDottore} keyboardType="phone-pad" />
-
-        <Text style={styles.label}>Orari di Ricevimento Disponibili (Nota Biografica)</Text>
-        <TextInput style={styles.input} placeholder="Es: Lun - Ven, 09:00 - 16:00" value={orariTesto} onChangeText={setOrariTesto} />
 
         {caricamentoMedico ? (
           <ActivityIndicator color={VERDE} style={{ marginTop: 15 }} />

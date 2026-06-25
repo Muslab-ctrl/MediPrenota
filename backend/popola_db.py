@@ -42,9 +42,9 @@ def resetta_e_popola():
         db.add(paziente)
         db.flush()
 
-        doc1 = Dottore(full_name="Andrea Bianchi", specialization="Medicina generale", studio_indirizzo="Studio San Giuseppe - Via Roma 123, Milano", telefono="02123456", biografia="Il Dott. Bianchi si occupa di medicina generale con particolare attenzione alla prevenzione.", anni_esperienza=15)
-        doc2 = Dottore(full_name="Laura Verdi", specialization="Cardiologia", studio_indirizzo="Centro Medico Italia - Via Torino 45, Milano", telefono="02765432", biografia="Specialista in cardiologia clinica e diagnostica strumentale.", anni_esperienza=12)
-        doc3 = Dottore(full_name="Stefano Neri", specialization="Dermatologia", studio_indirizzo="Poliambulatorio Salud - Via Milano 76, Milano", telefono="02987654", biografia="Esperto in dermatologia oncologica e trattamenti laser.", anni_esperienza=8)
+        doc1 = Dottore(full_name="Andrea Bianchi", specialization="Medicina generale", studio_indirizzo="Studio San Giuseppe - Via Roma 123, Milano", telefono="02123456")
+        doc2 = Dottore(full_name="Laura Verdi", specialization="Cardiologia", studio_indirizzo="Centro Medico Italia - Via Torino 45, Milano", telefono="02765432")
+        doc3 = Dottore(full_name="Stefano Neri", specialization="Dermatologia", studio_indirizzo="Poliambulatorio Salud - Via Milano 76, Milano", telefono="02987654")
 
         db.add_all([doc1, doc2, doc3])
         db.flush()
